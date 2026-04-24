@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kalkulator Bunda</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #bc8a5f;
+            --tri1: #f9d5d3; --tri2: #f2e1c1; --tri3: #d3e4f9;
+            --bg: #fdfaf5;
+            --text: #3e2723;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--text); height: 100vh; }
+
+        /* Container & Navigation */
+        .app-shell { position: relative; max-width: 500px; margin: auto; height: 100vh; display: flex; flex-direction: column; }
+        .main-content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 90px; text-align: center; }
+
+        /* Overlay System */
+        .page-overlay { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 3000; 
+            display: none; padding: 25px; animation: slideUp 0.3s ease-out;
+            overflow-y: auto; padding-bottom: 100px;
+        }
+        .page-overlay.active { display: block; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .close-btn { position: absolute; top: 20px; right: 20px; font-size: 28px; color: var(--primary); cursor: pointer; z-index: 3100; }
+
+        /* Wheel UI */
+        .wheel-box { position: relative; width: 100%; aspect-ratio: 1/1; margin: 5px 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        #staticBackground { position: absolute; width: 100%; height: 100%; z-index: 1; }
+        #rotaryDisc { position: absolute; width: 88%; height: 88%; z-index: 2; cursor: grab; transform-origin: center; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .center-hub { position: absolute; width: 34%; height: 34%; background: white; border-radius: 50%; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .pointer-mark { position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--primary); z-index: 20; }
+
+        /* Cards */
+        .card { background: var(--white); padding: 18px; border-radius: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); text-align: left; }
+        .tips-card { background: #fff9f2; border-left: 5px solid #ffcc80; padding: 15px; border-radius: 15px; text-align: left; }
+
+        /* Typography SVG */
+        .text-week { font-size: 8.5px; font-weight: 900; fill: #4e342e; }
+        .text-month { font-size: 7px; fill: #000; font-weight: 900; text-transform: uppercase; }
+
+        /* Footer Nav */
+        .footer-nav { 
+            position: fixed; bottom: 0; width: 100%; max-width: 500px; left: 50%; transform: translateX(-50%); 
+            background: var(--white); display: grid; grid-template-columns: repeat(5, 1fr); padding: 12px 0; border-top: 1px solid #eee; z-index: 2000; 
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #aaa; cursor: pointer; transition: 0.2s; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-item i { font-size: 18px; margin-bottom: 4px; }
+
+        /* About Page Styles */
+        .profile-box { text-align: center; padding: 20px 0; }
+        .dev-name { font-size: 20px; font-weight: 900; color: var(--primary); margin-top: 10px; }
+        .social-link { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f0f0f0; border-radius: 12px; margin-bottom: 10px; text-decoration: none; color: var(--text); font-weight: 600; font-size: 14px; }
+        .social-link i { font-size: 20px; width: 25px; text-align: center; }
+        .donation-card { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; padding: 20px; border-radius: 20px; margin-top: 20px; }
+        .ewallet-icons { display: flex; gap: 10px; margin: 15px 0; justify-content: center; font-size: 24px; }
+
+        /* Buttons & Inputs */
+        .btn-action { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input[type="date"], input[type="number"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin: 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <main class="main-content">
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+            <div style="text-align:left"><h2 style="font-size:18px">BundaCare Wheel</h2><p style="font-size:11px; color:#888">Edisi Premium Medis</p></div>
+            <div onclick="openPage('pageCalc')" style="background: var(--white); padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer;">
+                <i class="fas fa-calculator" style="color: var(--primary);"></i>
+            </div>
+        </header>
+
+        <div class="wheel-box">
+            <div class="pointer-mark"></div>
+            <svg id="staticBackground" viewBox="0 0 400 400">
+                <path d="M200,200 L200,10 A190,190 0 0,1 370,110 Z" fill="var(--tri1)" />
+                <path d="M200,200 L370,110 A190,190 0 0,1 270,380 Z" fill="var(--tri2)" />
+                <path d="M200,200 L270,380 A190,190 0 0,1 30,110 Z" fill="var(--tri3)" />
+            </svg>
+            <svg id="rotaryDisc" viewBox="0 0 400 400">
+                <circle cx="200" cy="200" r="175" fill="white" fill-opacity="0.95" />
+                <g id="weekNumbers"></g>
+                <g id="monthNames"></g>
+            </svg>
+            <div class="center-hub">
+                <div id="uiCenterWeek" style="font-size: 34px; font-weight: 900; color: var(--primary); line-height:1">1</div>
+                <div style="font-size: 10px; color: #888; font-weight: 900;">MINGGU</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="uiFruitIcon" style="font-size: 36px; background: #fef4f4; padding: 10px; border-radius: 15px;">🌱</div>
+                <div>
+                    <h3 id="uiTitle" style="font-size: 15px;">Awal Kehamilan</h3>
+                    <p id="uiGrowth" style="font-size: 12px; color: var(--primary); font-weight: 900;">Status: Standar Medis</p>
+                </div>
+            </div>
+            <p id="uiDesc" style="font-size: 13px; color: #666; margin-top: 10px; line-height: 1.5;">Putar roda atau gunakan kalkulator HPHT untuk detail perkembangan janin.</p>
+        </div>
+
+        <div class="tips-card">
+            <strong style="font-size: 13px;"><i class="fas fa-lightbulb"></i> Tips Bunda:</strong>
+            <p id="uiTips" style="font-size: 12px; color: #5d4037; margin-top: 5px;">Pilih tanggal HPHT untuk sinkronisasi otomatis.</p>
+        </div>
+    </main>
+
+    <nav class="footer-nav">
+        <div class="nav-item active" onclick="closeAllPages()"><i class="fas fa-dharmachakra"></i><span>Roda</span></div>
+        <div class="nav-item" onclick="openPage('pageBMI')"><i class="fas fa-weight"></i><span>BMI</span></div>
+        <div class="nav-item" onclick="openPage('pageKick')"><i class="fas fa-baby"></i><span>Kick</span></div>
+        <div class="nav-item" onclick="openPage('pageContra')"><i class="fas fa-heartbeat"></i><span>Kontraksi</span></div>
+        <div class="nav-item" onclick="openPage('pageAbout')"><i class="fas fa-user-gear"></i><span>About</span></div>
+    </nav>
+</div>
+
+<div id="pageCalc" class="page-overlay">
+    <i class="fas fa-times-circle close-btn" onclick="closeAllPages()"></i>
+    <h2>Kalkulator HPHT</h2>
+    <div class="card" style="margin-top:20px">
+        <label>Hari Pertama Haid Terakhir:</label>
+        <input type="date" id="inputHPHT">
+        <button class="btn-action" onclick="syncWheelFromHPHT()">Sinkronkan Roda</button>
+    </div>
+</div>
+
+<div id="pageBMI" class="page-overlay">
+    <i class="fas fa-times-circle close-btn" onclick="closeAllPages()"></i>
+    <h2>Monitor BMI</h2>
+    <div class="card" style="margin-top:20px">
+        <input type="number" id="bmiW" placeholder="Berat Awal (kg)">
+        <input type="number" id="bmiH" placeholder="Tinggi (cm)">
+        <button class="btn-action" onclick="calcBMI()">Hitung Target</button>
+        <div id="bmiRes" style="margin-top:15px; text-align:center; font-weight:bold; color:var(--primary)"></div>
+    </div>
+</div>
+
+<div id="pageKick" class="page-overlay">
+    <i class="fas fa-times-circle close-btn" onclick="closeAllPages()"></i>
+    <h2>Penghitung Tendangan</h2>
+    <div class="card" style="margin-top:20px; text-align:center">
+        <div style="font-size:60px; font-weight:900; color:var(--primary)" id="kickVal">0</div>
+        <button class="btn-action" style="height:100px; width:100px; border-radius:50%; font-size:30px" onclick="addKick()">🦶</button>
+        <button class="btn-action" style="background:#eee; color:#333" onclick="resetKick()">Reset</button>
+    </div>
+</div>
+
+<div id="pageContra" class="page-overlay">
+    <i class="fas fa-times-circle close-btn" onclick="closeAllPages()"></i>
+    <h2>Timer Kontraksi</h2>
+    <div class="card" style="margin-top:20px; text-align:center">
+        <div id="timerC" style="font-size:40px; font-weight:900">00:00</div>
+        <button id="btnC" class="btn-action" onclick="toggleC()">Mulai</button>
+        <div id="listC" style="margin-top:15px; font-size:12px; text-align:left"></div>
+    </div>
+</div>
+
+<div id="pageAbout" class="page-overlay">
+    <i class="fas fa-times-circle close-btn" onclick="closeAllPages()"></i>
+    <div class="profile-box">
+        <div style="width:80px; height:80px; background:var(--primary); border-radius:50%; margin:auto; display:flex; align-items:center; justify-content:center; color:white; font-size:30px">
+            <i class="fas fa-code"></i>
+        </div>
+        <h2 class="dev-name">Aminaldi Arima</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:20px">Developer & UI Designer</p>
+    </div>
+
+    <div class="card" style="border:none">
+        <a href="https://wa.me/6283157592973" class="social-link"><i class="fab fa-whatsapp" style="color:#25D366"></i> +62 831-5759-2973</a>
+        <a href="https://instagram.com/aminaldi_arima" class="social-link"><i class="fab fa-instagram" style="color:#E1306C"></i> @aminaldi_arima</a>
+        <a href="https://tiktok.com/@aminaldi_arima" class="social-link"><i class="fab fa-tiktok" style="color:#000"></i> @aminaldi_arima</a>
+        <a href="mailto:naldi2509@gmail.com" class="social-link"><i class="fas fa-envelope" style="color:#EA4335"></i> naldi2509@gmail.com</a>
+    </div>
+
+    <div class="donation-card">
+        <h3>Dukung Pengembangan</h3>
+        <p style="font-size:12px; opacity:0.9; margin-top:5px">Jika aplikasi ini membantu Bunda, dukung kami untuk fitur selanjutnya.</p>
+        <div class="ewallet-icons">
+            <i class="fas fa-wallet"></i> <i class="fas fa-mobile-screen"></i> <i class="fas fa-credit-card"></i>
+        </div>
+        <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:10px; font-size:13px">
+            <strong><center>E-Wallet: 08128880593</center></strong> 
+            <strong><center>A/n: Aminaldi Arima</center></strong>
+        </div>
+        <p style="font-size:12px; margin-top:12px; text-align:center">DANA • OVO • GOPAY • LINKAJA • SHOPEEPAY</p>
+    </div>
+</div>
+
+<script>
+    const disc = document.getElementById('rotaryDisc');
+    const weekG = document.getElementById('weekNumbers');
+    const monthG = document.getElementById('monthNames');
+
+    // Init Wheel Texts
+    for (let i = 1; i <= 40; i++) {
+        const angle = (i * 9) - 90;
+        const x = 200 + 152 * Math.cos(angle * Math.PI/180);
+        const y = 200 + 152 * Math.sin(angle * Math.PI/180);
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("class", "text-week");
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("transform", `rotate(${angle + 90}, ${x}, ${y})`);
+        t.textContent = i;
+        weekG.appendChild(t);
+    }
+
+    const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+    for (let i = 0; i < 12; i++) {
+        const angle = (i * 30) - 90;
+        const x = 200 + 128 * Math.cos(angle * Math.PI/180);
+        const y = 200 + 128 * Math.sin(angle * Math.PI/180);
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("class", "text-month");
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("transform", `rotate(${angle + 90}, ${x}, ${y})`);
+        t.textContent = months[i];
+        monthG.appendChild(t);
+    }
+
+    // Logic Database
+    const db = {
+        1: { icon: "🌱", title: "Minggu 1: Pembuahan", desc: "Tubuh Bunda sedang bersiap untuk ovulasi. Jaga kesehatan!", tips: "Konsumsi asam folat 400mcg tiap hari." },
+        8: { icon: "🍓", title: "Minggu 8: Raspberry", desc: "Janin sebesar raspberry. Jantung berdetak kuat.", tips: "Wajar merasa mual, makan porsi kecil tapi sering." },
+        20: { icon: "🍌", title: "Minggu 20: Pisang", desc: "Bayi sudah bisa mendengar suara Bunda.", tips: "Ajak bayi bicara dan dengarkan musik lembut." },
+        32: { icon: "🥥", title: "Minggu 32: Kelapa", growth: "1.8kg", desc: "Bayi mulai memutar posisi kepala ke bawah.", tips: "Siapkan tas persalinan dari sekarang." },
+        40: { icon: "🍉", title: "Minggu 40: Semangka", desc: "Waktunya bersiap! Bayi sudah matang sempurna.", tips: "Pantau frekuensi kontraksi Bunda." }
+    };
+
+    // Navigation & Rotation
+    let isDrag = false, startA = 0, currR = 0, lastR = 0;
+    const getA = (x, y) => {
+        const r = disc.getBoundingClientRect();
+        return Math.atan2(y - (r.top + r.height/2), x - (r.left + r.width/2)) * 180 / Math.PI;
+    };
+
+    const onStart = (e) => { isDrag = true; disc.style.transition = 'none'; const p = e.touches ? e.touches[0] : e; startA = getA(p.clientX, p.clientY) - lastR; };
+    const onMove = (e) => {
+        if (!isDrag) return;
+        e.preventDefault();
+        const p = e.touches ? e.touches[0] : e;
+        currR = getA(p.clientX, p.clientY) - startA;
+        disc.style.transform = `rotate(${currR}deg)`;
+        updateUI(Math.round(((-currR % 360 + 360) % 360) / 9) + 1);
+    };
+    const onEnd = () => { isDrag = false; lastR = currR; };
+
+    disc.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+    disc.addEventListener('touchstart', onStart, {passive:false});
+    window.addEventListener('touchmove', onMove, {passive:false});
+    window.addEventListener('touchend', onEnd);
+
+    function updateUI(w) {
+        if(w > 40) w = 40;
+        document.getElementById('uiCenterWeek').innerText = w;
+        const data = db[w] || db[Object.keys(db).reverse().find(k => k <= w)];
+        document.getElementById('uiFruitIcon').innerText = data.icon;
+        document.getElementById('uiTitle').innerText = data.title;
+        document.getElementById('uiDesc').innerText = data.desc;
+        document.getElementById('uiTips').innerText = data.tips;
+    }
+
+    function syncWheelFromHPHT() {
+        const d = document.getElementById('inputHPHT').value;
+        if(!d) return;
+        const diff = Math.floor((new Date() - new Date(d)) / (1000*60*60*24));
+        let w = Math.floor(diff/7);
+        if(w < 1) w = 1; if(w > 40) w = 40;
+        lastR = -(w - 1) * 9;
+        disc.style.transition = 'transform 1s ease-out';
+        disc.style.transform = `rotate(${lastR}deg)`;
+        setTimeout(() => { closeAllPages(); updateUI(w); }, 600);
+    }
+
+    // Modal Control
+    function openPage(id) {
+        document.querySelectorAll('.page-overlay').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        // Find nav item by icon if any
+    }
+    function closeAllPages() {
+        document.querySelectorAll('.page-overlay').forEach(p => p.classList.remove('active'));
+        document.querySelector('.nav-item:first-child').classList.add('active');
+    }
+
+    // Mini Features
+    function calcBMI() {
+        const w = document.getElementById('bmiW').value;
+        const h = document.getElementById('bmiH').value / 100;
+        if(w && h) {
+            const bmi = w/(h*h);
+            const res = bmi < 18.5 ? "Saran: +12.5 s/d 18 kg" : (bmi < 25 ? "Saran: +11.5 s/d 16 kg" : "Saran: +7 s/d 11.5 kg");
+            document.getElementById('bmiRes').innerText = res;
+        }
+    }
+    let kicks = 0; function addKick() { kicks++; document.getElementById('kickVal').innerText = kicks; }
+    function resetKick() { kicks = 0; document.getElementById('kickVal').innerText = 0; }
+    
+    let cActive = false, cTime, cInt;
+    function toggleC() {
+        const btn = document.getElementById('btnC');
+        if(!cActive) {
+            cActive=true; cTime=Date.now(); btn.innerText="Berhenti";
+            cInt = setInterval(() => {
+                const s = Math.floor((Date.now()-cTime)/1000);
+                document.getElementById('timerC').innerText = `00:${s<10?'0'+s:s}`;
+            }, 1000);
+        } else {
+            clearInterval(cInt); cActive=false; btn.innerText="Mulai";
+            const dur = Math.floor((Date.now()-cTime)/1000);
+            document.getElementById('listC').innerHTML = `<p>Durasi: ${dur}s - ${new Date().toLocaleTimeString()}</p>` + document.getElementById('listC').innerHTML;
+        }
+    }
+</script>
+</body>
+</html>
